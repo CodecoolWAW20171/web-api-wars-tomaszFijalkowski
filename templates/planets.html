@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html>
+{% include 'head.html' %}
+
+<body>
+    <div class="bg-image">
+        <nav class="navbar navbar-expand-lg navbar-light bg-light">
+            <a class="navbar-brand">
+                <span class="branding-1">API</span>
+                <span class="branding-2">Wars</span>
+            </a>
+
+            <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarSupportedContent" aria-controls="navbarSupportedContent"
+                aria-expanded="false" aria-label="Toggle navigation">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+
+            <div class="collapse navbar-collapse" id="navbarSupportedContent">
+                <ul class="navbar-nav mr-auto">
+                    <li class="nav-item active">
+                        <a class="nav-link" href="{{ url_for('planets') }}">Planet List
+                            <span class="sr-only">(current)</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a id="statisticsLink" class="nav-link" href="" data-toggle="modal" data-target="#statisticsModal">Statistics</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('logout') }}">Logout</a>
+                    </li>
+                </ul>
+                Signed in as {{ name }}
+            </div>
+        </nav>
+
+        <div class="vertical-center">
+            <table class="table w-80 mx-auto table-light table-hover table-borderless">
+                <thead class="thead-light">
+                    <tr>
+                        <th scope="col">Name</th>
+                        <th scope="col">Diameter</th>
+                        <th scope="col">Climate</th>
+                        <th scope="col">Terrain</th>
+                        <th scope="col">Surface Water</th>
+                        <th scope="col">Population</th>
+                        <th scope="col">Residents</th>
+                        <th class="text-center" scope="col"><i class="fas fa-star"></i></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for dict in planets.results %}
+                        <tr onMouseOver="rowMouseOver({{ loop.index0 }})" onMouseOut="rowMouseOut({{ loop.index0 }})">
+                            <td>{{ dict["name"] }}</td>
+                            {% if dict["diameter"] != "unknown" %}
+                                <td>{{ dict["diameter"]+" km" }}</td>
+                            {% else %}
+                                <td>{{ dict["diameter"] }}</td>
+                            {% endif %}
+                            <td>{{ dict["climate"] }}</td>
+                            <td>{{ dict["terrain"] }}</td>
+                            {% if dict["surface_water"] != "unknown" %}
+                                <td>{{ dict["surface_water"]+"%" }}</td>
+                            {% else %}
+                                <td>{{ dict["surface_water"] }}</td>
+                            {% endif %}
+                            {% if dict["population"] | int >= 10**12 %}
+                                <td>{{ dict["population"] | int //10**12}} trillion</td>
+                            {% elif dict["population"] | int >= 10**9 %}
+                                <td>{{ dict["population"] | int //10**9}} billion</td>
+                            {% elif dict["population"] | int >= 10**6 %}
+                                <td>{{ dict["population"] | int //10**6 }} million</td>
+                            {% elif dict["population"] | int >= 10**3 %}
+                                <td>{{ dict["population"] | int //10**3 }} thousand</td>
+                            {% else %}
+                                <td>{{ dict["population"] }}</td>
+                            {% endif %}
+                            {% if dict["residents"] %}
+                                {% if dict["residents"] | length > 1 %}
+                                    <td>
+                                        <button type="button" class="btn btn-outline-primary btn-sm" data-toggle="modal" data-target="#residentsModal" data-ammount="many" data-name="{{ dict["name"] }}" data-residents="{{ dict["residents"] }}">
+                                        {{ dict["residents"] | length }} residents</button>
+                                    </td>
+                                {% else %}
+                                    <td>
+                                        <button type="button" class="btn btn-outline-primary btn-sm" data-toggle="modal" data-target="#residentsModal" data-ammount="one" data-name="{{ dict["name"] }}" data-residents="{{ dict["residents"] }}">
+                                        {{ dict["residents"] | length }} resident</button>
+                                    </td>
+                                {% endif %}
+                            {% else %}
+                                <td>unknown</td>
+                            {% endif %}
+                            <td class="text-center">
+                                <button id="vote_{{loop.index0}}" type="button" onClick="vote(this)" class="btn btn-outline-primary vote btn-sm" data-planet-id="{{ dict["url"][dict["url"][:-1].rfind('/')+1:-1] }}" data-planet-name="{{ dict["name"] }}" data-user-id="{{ user_id }}">Vote</button>
+                            </td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+
+            <div class="modal fade" id="residentsModal" tabindex="-1" role="dialog" aria-labelledby="residentsModalLabel" aria-hidden="true">
+                <div class="modal-dialog modal-lg modal-dialog-centered" role="document">
+                    <div class="modal-content bg-light">
+                        <div class="modal-header">
+                            <h5 class="modal-title" id="residentsModalLabel"></h5>
+                            <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                            <span aria-hidden="true">&times;</span>
+                            </button>
+                        </div>
+                        <div class="modal-body">
+                            <table class="table w-100 mx-auto table-light table-hover table-borderless">
+                                <thead class='thead-light'>
+                                    <tr> 
+                                        <th scope='col'>Name</th> 
+                                        <th scope='col'>Height</th>
+                                        <th scope='col'>Mass</th>
+                                        <th scope='col'>Skin</th>
+                                        <th scope='col'>Hair</th>
+                                        <th scope='col'>Eyes</th>
+                                        <th scope='col'>Born</th> 
+                                        <th scope='col'>Gender</th> 
+                                    </tr>
+                                </thead>
+                                <tbody class="bg-light" id="modalTable">
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="modal fade" id="statisticsModal" tabindex="-1" role="dialog" aria-labelledby="statisticsModalLabel" aria-hidden="true">
+                <div class="modal-dialog modal-sm modal-dialog-centered" role="document">
+                    <div class="modal-content bg-light">
+                        <div class="modal-header">
+                            <h5 class="modal-title" id="statisticsModalLabel"></h5>
+                            <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                                <span aria-hidden="true">&times;</span>
+                            </button>
+                        </div>
+                        <div class="modal-body">
+                            <table class="table table-sm w-100 mx-auto table-light table-hover table-borderless">
+                                <thead class='thead-light'>
+                                    <tr> 
+                                        <th scope='col'>Planet name</th> 
+                                        <th scope='col'>Votes</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="bg-light" id="statisticsTable">
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <nav class="fixed-bottom">
+            <ul class="pagination justify-content-center">
+                {% if planets.previous %}
+                <li class="page-item">
+                    <a class="page-link" href="/planets/{{ planets.previous[-1] }}" aria-label="Previous">
+                        <span aria-hidden="true">&laquo;</span>
+                        <span class="sr-only">Previous</span>
+                    </a>
+                </li>
+                {% else %}
+                <li class="page-item disabled">
+                    <a class="page-link" aria-label="Previous">
+                        <span aria-hidden="true">&laquo;</span>
+                        <span class="sr-only">Previous</span>
+                    </a>
+                </li>
+                {% endif %} 
+                {% for page in range(1,8) %}
+                    {% if planets.previous %}
+                        {% if page == (planets.previous[-1] | int +1) %}
+                            <li class="page-item active">
+                                <a class="page-link" href="/planets/{{ page }}">{{ page }}</a>
+                            </li>
+                            {% else %}
+                                <li class="page-item">
+                                    <a class="page-link" href="/planets/{{ page }}">{{ page }}</a>
+                                </li>
+                        {% endif %}
+                    {% elif planets.next %}
+                        {% if page == (planets.next[-1] | int -1) %}
+                            <li class="page-item active">
+                                <a class="page-link" href="/planets/{{ page }}">{{ page }}</a>
+                            </li>
+                        {% else %}
+                            <li class="page-item">
+                                <a class="page-link" href="/planets/{{ page }}">{{ page }}</a>
+                            </li>
+                        {% endif %}
+                    {% endif %}
+                {% endfor %}
+                {% if planets.next %}
+                <li class="page-item">
+                    <a class="page-link" href="/planets/{{ planets.next[-1] }}" aria-label="Next">
+                        <span aria-hidden="true">&raquo;</span>
+                        <span class="sr-only">Next</span>
+                    </a>
+                </li>
+                {% else %}
+                <li class="page-item disabled">
+                    <a class="page-link" aria-label="Next">
+                        <span aria-hidden="true">&raquo;</span>
+                        <span class="sr-only">Next</span>
+                    </a>
+                </li>
+                {% endif %}
+            </ul>
+        </nav>
+    </div>
+</body>
+<!-- css animation fix for chrome -->
+<script>
+</script>
+
+</html>
